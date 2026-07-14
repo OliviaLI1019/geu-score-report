@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>GEU管培生寮步仓作业评分表 - 汇报展示</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+    min-height: 100vh;
+    padding: 24px;
+    color: #1a202c;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+  .header {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+    color: #fff;
+    padding: 32px 40px;
+    border-radius: 16px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 30px rgba(30, 58, 138, 0.25);
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .header h1 { font-size: 28px; font-weight: 700; letter-spacing: 1px; }
+  .header .subtitle { font-size: 14px; opacity: 0.9; margin-top: 8px; }
+  .header .meta { display: flex; gap: 24px; margin-top: 16px; font-size: 13px; opacity: 0.85; }
+
+  /* KPI Cards */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: #fff;
+    padding: 20px 24px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    border-left: 4px solid #2563eb;
+    transition: transform 0.2s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); }
+  .kpi-card.green { border-left-color: #10b981; }
+  .kpi-card.orange { border-left-color: #f59e0b; }
+  .kpi-card.red { border-left-color: #ef4444; }
+  .kpi-label { font-size: 13px; color: #64748b; margin-bottom: 8px; }
+  .kpi-value { font-size: 32px; font-weight: 700; color: #0f172a; }
+  .kpi-unit { font-size: 14px; color: #94a3b8; margin-left: 4px; }
+  .kpi-trend { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+  /* Panel */
+  .panel {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    margin-bottom: 24px;
+  }
+  .panel-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-title::before {
+    content: "";
+    width: 4px;
+    height: 18px;
+    background: #2563eb;
+    border-radius: 2px;
+  }
+
+  /* Chart grid */
+  .chart-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+  .chart-box { height: 380px; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  thead tr {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+    color: #fff;
+  }
+  thead th {
+    padding: 14px 12px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+  }
+  tbody tr {
+    border-bottom: 1px solid #e2e8f0;
+    transition: background 0.15s;
+  }
+  tbody tr:hover { background: #f1f5f9; }
+  tbody tr:nth-child(even) { background: #fafbfc; }
+  tbody tr:nth-child(even):hover { background: #f1f5f9; }
+  tbody td {
+    padding: 12px;
+    text-align: center;
+    color: #334155;
+  }
+  .rank {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    line-height: 28px;
+    border-radius: 50%;
+    font-weight: 700;
+    color: #fff;
+    font-size: 13px;
+  }
+  .rank-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4); }
+  .rank-2 { background: linear-gradient(135deg, #cbd5e1, #94a3b8); box-shadow: 0 2px 6px rgba(148, 163, 184, 0.4); }
+  .rank-3 { background: linear-gradient(135deg, #fb923c, #ea580c); box-shadow: 0 2px 6px rgba(234, 88, 12, 0.4); }
+  .rank-other { background: #e2e8f0; color: #475569; }
+
+  .name { font-weight: 600; color: #0f172a; }
+  .homework a {
+    color: #2563eb;
+    text-decoration: none;
+    border-bottom: 1px dashed #93c5fd;
+  }
+  .homework a:hover { color: #1d4ed8; border-bottom-style: solid; }
+
+  .score { font-weight: 600; font-size: 15px; }
+  .score-h { color: #dc2626; }  /* 高分红色 */
+  .score-m { color: #d97706; }  /* 中分橙色 */
+  .score-l { color: #64748b; }  /* 低分灰色 */
+
+  .avg {
+    font-weight: 700;
+    font-size: 16px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    display: inline-block;
+    min-width: 56px;
+  }
+  .avg-h { background: #dcfce7; color: #15803d; }  /* 高分绿色 */
+  .avg-m { background: #fef3c7; color: #b45309; }  /* 中分黄色 */
+  .avg-l { background: #fee2e2; color: #b91c1c; }  /* 低分红色 */
+
+  .note {
+    font-size: 12px;
+    color: #475569;
+    text-align: left;
+    padding-left: 12px;
+  }
+  .note-bad { color: #dc2626; }
+  .note-good { color: #15803d; }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .badge-top { background: #dcfce7; color: #15803d; }
+  .badge-mid { background: #fef3c7; color: #b45309; }
+  .badge-low { background: #fee2e2; color: #b91c1c; }
+
+  /* Section */
+  .insights {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .insight-box {
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 20px;
+    border-left: 4px solid #10b981;
+  }
+  .insight-box.warn { border-left-color: #ef4444; background: #fef2f2; }
+  .insight-box h4 { color: #0f172a; margin-bottom: 10px; font-size: 15px; }
+  .insight-box ul { list-style: none; }
+  .insight-box li {
+    padding: 6px 0;
+    font-size: 13px;
+    color: #475569;
+    padding-left: 18px;
+    position: relative;
+    line-height: 1.6;
+  }
+  .insight-box li::before {
+    content: "▸";
+    position: absolute;
+    left: 0;
+    color: #2563eb;
+    font-weight: bold;
+  }
+  .insight-box.warn li::before { color: #ef4444; }
+
+  .footer {
+    text-align: center;
+    padding: 20px;
+    color: #94a3b8;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- 标题 -->
+  <div class="header">
+    <h1>📊 GEU管培生寮步仓作业评分表</h1>
+    <div class="subtitle">5分制 · 3位评审综合评分 · 数据按均分降序排列</div>
+    <div class="meta">
+      <span>📅 评分周期：2026年7月</span>
+      <span>👥 参评人数：12人</span>
+      <span>👨‍🏫 评审团：仲明哥、泽鹏哥、Tiger</span>
+    </div>
+  </div>
+
+  <!-- KPI 卡片 -->
+  <div class="kpi-grid">
+    <div class="kpi-card green">
+      <div class="kpi-label">平均分（整体）</div>
+      <div class="kpi-value">3.99<span class="kpi-unit">/ 5.0</span></div>
+      <div class="kpi-trend">整体表现良好，处于中上水平</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">最高分</div>
+      <div class="kpi-value">4.8<span class="kpi-unit">分</span></div>
+      <div class="kpi-trend">🏆 何怡静 - 重量异常处理流程优化报告</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">最低分</div>
+      <div class="kpi-value">3.2<span class="kpi-unit">分</span></div>
+      <div class="kpi-trend">⚠️ 徐大卫 - 正向操作流程诊断分析</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">分数极差</div>
+      <div class="kpi-value">1.6<span class="kpi-unit">分</span></div>
+      <div class="kpi-trend">学员表现分化较大，需关注后段</div>
+    </div>
+  </div>
+
+  <!-- 图表区 -->
+  <div class="chart-row">
+    <div class="panel">
+      <div class="panel-title">均分排名对比（按均分降序）</div>
+      <div id="barChart" class="chart-box"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">分数段分布</div>
+      <div id="pieChart" class="chart-box"></div>
+    </div>
+  </div>
+
+  <div class="chart-row" style="grid-template-columns: 1fr 1fr;">
+    <div class="panel">
+      <div class="panel-title">三位评审打分对比（雷达）</div>
+      <div id="radarChart" class="chart-box"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">分数分布（散点 + 箱线）</div>
+      <div id="scatterChart" class="chart-box"></div>
+    </div>
+  </div>
+
+  <!-- 排序后的表格 -->
+  <div class="panel">
+    <div class="panel-title">📋 详细评分明细（按均分降序排列）</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>排名</th>
+            <th>姓名</th>
+            <th>作业主题</th>
+            <th>仲明哥</th>
+            <th>泽鹏哥</th>
+            <th>Tiger</th>
+            <th>均分</th>
+            <th>等级</th>
+            <th>备注</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="rank rank-1">1</span></td>
+            <td class="name">何怡静</td>
+            <td class="homework"><a href="#">何怡静——重量异常处理流程优化报告</a></td>
+            <td><span class="score score-h">4.5</span></td>
+            <td><span class="score score-h">5.0</span></td>
+            <td><span class="score score-h">5.0</span></td>
+            <td><span class="avg avg-h">4.8</span></td>
+            <td><span class="badge badge-top">优秀</span></td>
+            <td class="note note-good">逻辑清晰+案例+量化数据</td>
+          </tr>
+          <tr>
+            <td><span class="rank rank-2">2</span></td>
+            <td class="name">叶琳</td>
+            <td class="homework"><a href="#">叶琳——寮步仓人效管控</a></td>
+            <td><span class="score score-m">4.2</span></td>
+            <td><span class="score score-h">5.0</span></td>
+            <td><span class="score score-h">5.0</span></td>
+            <td><span class="avg avg-h">4.7</span></td>
+            <td><span class="badge badge-top">优秀</span></td>
+            <td class="note">-</td>
+          </tr>
+          <tr>
+            <td><span class="rank rank-3">3</span></td>
+            <td class="name">何峰峰</td>
+            <td class="homework"><a href="#">寮步仓控泡问题梳理7.8</a></td>
+            <td><span class="score score-m">4.1</span></td>
+            <td><span class="score score-h">5.0</span></td>
+            <td><span class="score score-h">5.0</span></td>
+            <td><span class="avg avg-h">4.7</span></td>
+            <td><span class="badge badge-top">优秀</span></td>
+            <td class="note">-</td>
+          </tr>
+          <tr>
+            <td><span class="rank rank-other">4</span></td>
+            <td class="name">王妍玉</td>
+            <td class="homework"><a href="#">王妍玉——重量异常处理流程优化</a></td>
+            <td><span class="score score-m">4.0</span></td>
+            <td><span class="score score-h">5.0</span></td>
+            <td><span class="score score-h">5.0</span></td>
+            <td><span class="avg avg-h">4.7</span></td>
+            <td><span class="badge badge-top">优秀</span></td>
+            <td class="note">-</td>
+          </tr>
+          <tr>
+            <td><span class="rank rank-other">5</span></td>
+            <td class="name">周文德</td>
+            <td class="homework"><a href="https://marvelouswendy.github.io/Wearhousing_Learning_Summary/" target="_blank">https://marvelouswendy.github.io/Wearhousing_Learning_Summary/</a></td>
+            <td><span class="score score-l">3.5</span></td>
+            <td><span class="score score-m">4.0</span></td>
+            <td><span class="score score-h">5.0</span></td>
+            <td><span class="avg avg-m">4.2</span></td>
+            <td><span class="badge badge-mid">良好</span></td>
+            <td class="note note-bad">没有有效输出</td>
+          </tr>
+          <tr>
+            <td><span class="rank rank-other">6</span></td>
+            <td class="name">李雅琪</td>
+            <td class="homework"><a href="#">李雅琪——寮步仓参访课题任务</a></td>
+            <td><span class="score score-m">4.0</span></td>
+            <td><span class="score score-m">4.0</span></td>
+            <td><span class="score score-m">4.0</span></td>
+            <td><span class="avg avg-m">4.0</span></td>
+            <td><span class="badge badge-mid">良好</span></td>
+            <td class="note">-</td>
+          </tr>
+          <tr>
+            <td><span class="rank rank-other">7</span></td>
+            <td class="name">罗艳</td>
+            <td class="homework"><a href="#">罗艳——寮步仓现场回流传分析和解决方案</a></td>
+            <td><span class="score score-m">4.1</span></td>
+            <td><span class="score score-m">4.0</span></td>
+            <td><span class="score score-m">4.0</span></td>
+            <td><span class="avg avg-m">4.0</span></td>
+            <td><span class="badge badge-mid">良好</span></td>
+            <td class="note">-</td>
+          </tr>
+          <tr>
+            <td><span class="rank rank-other">8</span></td>
+            <td class="name">张钰琳</td>
+            <td class="homework"><a href="#">张钰琳——现场如何进行表格控泡</a></td>
+            <td><span class="score score-m">4.0</span></td>
+            <td><span class="score score-m">4.0</span></td>
+            <td><span class="score score-m">4.0</span></td>
+            <td><span class="avg avg-m">4.0</span></td>
+            <td><span class="badge badge-mid">良好</span></td>
+            <td class="note">-</td>
+          </tr>
+          <tr>
+            <td><span class="rank rank-other">9</span></td>
+            <td class="name">李雨秋</td>
+            <td class="homework"><a href="#">李雨秋——寮步仓参访课题</a></td>
+            <td><span class="score score-l">3.6</span></td>
+            <td><span class="score score-m">4.0</span></td>
+            <td><span class="score score-m">4.0</span></td>
+            <td><span class="avg avg-m">3.9</span></td>
+            <td><span class="badge badge-mid">良好</span></td>
+            <td class="note note-bad">有偏题+问题识别不具体</td>
+          </tr>
+          <tr>
+            <td><span class="rank rank-other">10</span></td>
+            <td class="name">崔芳雨</td>
+            <td class="homework"><a href="#">崔芳雨——现场如何进行表格控泡</a></td>
+            <td><span class="score score-m">4.0</span></td>
+            <td><span class="score score-l">3.0</span></td>
+            <td><span class="score score-l">3.0</span></td>
+            <td><span class="avg avg-l">3.3</span></td>
+            <td><span class="badge badge-low">待改进</span></td>
+            <td class="note">-</td>
+          </tr>
+          <tr>
+            <td><span class="rank rank-other">11</span></td>
+            <td class="name">徐筱笛</td>
+            <td class="homework"><a href="#">徐筱笛——寮步仓参观学习</a></td>
+            <td><span class="score score-l">3.9</span></td>
+            <td><span class="score score-l">3.0</span></td>
+            <td><span class="score score-l">3.0</span></td>
+            <td><span class="avg avg-l">3.3</span></td>
+            <td><span class="badge badge-low">待改进</span></td>
+            <td class="note">-</td>
+          </tr>
+          <tr>
+            <td><span class="rank rank-other">12</span></td>
+            <td class="name">徐大卫</td>
+            <td class="homework"><a href="#">徐大卫——正向操作流程诊断分析</a></td>
+            <td><span class="score score-l">3.5</span></td>
+            <td><span class="score score-l">3.0</span></td>
+            <td><span class="score score-l">3.0</span></td>
+            <td><span class="avg avg-l">3.2</span></td>
+            <td><span class="badge badge-low">待改进</span></td>
+            <td class="note note-bad">内容有点跑题</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 洞察 -->
+  <div class="panel">
+    <div class="panel-title">💡 关键洞察与建议</div>
+    <div class="insights">
+      <div class="insight-box">
+        <h4>🌟 亮点学员（TOP 4）</h4>
+        <ul>
+          <li><strong>何怡静（4.8分）</strong>：作业质量最高，逻辑清晰、案例丰富、数据量化充分，建议作为标杆分享</li>
+          <li><strong>叶琳、何峰峰、王妍玉（4.7分）</strong>：三位并列第二，作业质量稳定，可重点培养</li>
+          <li>前4名均分均达到4.7+，反映出学员的潜力上限较高</li>
+        </ul>
+      </div>
+      <div class="insight-box warn">
+        <h4>⚠️ 待改进学员（3.3分及以下）</h4>
+        <ul>
+          <li><strong>徐大卫（3.2分）</strong>：均分最低，内容有跑题现象，需针对性辅导</li>
+          <li><strong>崔芳雨、徐筱笛（3.3分）</strong>：作业深度不足，建议复盘</li>
+          <li>后3名被泽鹏哥和Tiger评分较低（均3.0分），可能存在作业内容与评审预期错位</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    📊 数据来源：GEU管培生寮步仓作业评分表（5分制） · 生成时间：2026年7月14日
+  </div>
+
+</div>
+
+<script>
+  // ===== 数据 =====
+  // 按均分降序
+  const data = [
+    { name: '何怡静', zhong: 4.5, ze: 5.0, tiger: 5.0, avg: 4.8 },
+    { name: '叶琳',   zhong: 4.2, ze: 5.0, tiger: 5.0, avg: 4.7 },
+    { name: '何峰峰', zhong: 4.1, ze: 5.0, tiger: 5.0, avg: 4.7 },
+    { name: '王妍玉', zhong: 4.0, ze: 5.0, tiger: 5.0, avg: 4.7 },
+    { name: '周文德', zhong: 3.5, ze: 4.0, tiger: 5.0, avg: 4.2 },
+    { name: '李雅琪', zhong: 4.0, ze: 4.0, tiger: 4.0, avg: 4.0 },
+    { name: '罗艳',   zhong: 4.1, ze: 4.0, tiger: 4.0, avg: 4.0 },
+    { name: '张钰琳', zhong: 4.0, ze: 4.0, tiger: 4.0, avg: 4.0 },
+    { name: '李雨秋', zhong: 3.6, ze: 4.0, tiger: 4.0, avg: 3.9 },
+    { name: '崔芳雨', zhong: 4.0, ze: 3.0, tiger: 3.0, avg: 3.3 },
+    { name: '徐筱笛', zhong: 3.9, ze: 3.0, tiger: 3.0, avg: 3.3 },
+    { name: '徐大卫', zhong: 3.5, ze: 3.0, tiger: 3.0, avg: 3.2 }
+  ];
+
+  // 颜色：按均分
+  const colorFor = (avg) => {
+    if (avg >= 4.5) return '#10b981';
+    if (avg >= 4.0) return '#3b82f6';
+    if (avg >= 3.5) return '#f59e0b';
+    return '#ef4444';
+  };
+
+  // ===== 1. 柱状图：均分排名 =====
+  const barChart = echarts.init(document.getElementById('barChart'));
+  barChart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: 70, right: 30, top: 20, bottom: 30 },
+    xAxis: {
+      type: 'value',
+      max: 5,
+      axisLine: { lineStyle: { color: '#cbd5e1' } },
+      splitLine: { lineStyle: { color: '#e2e8f0' } }
+    },
+    yAxis: {
+      type: 'category',
+      data: data.map(d => d.name).reverse(),
+      axisLine: { lineStyle: { color: '#cbd5e1' } },
+      axisLabel: { color: '#334155', fontSize: 12 }
+    },
+    series: [{
+      name: '均分',
+      type: 'bar',
+      data: data.map(d => ({
+        value: d.avg,
+        itemStyle: {
+          color: colorFor(d.avg),
+          borderRadius: [0, 6, 6, 0]
+        }
+      })).reverse(),
+      label: {
+        show: true,
+        position: 'right',
+        color: '#0f172a',
+        fontWeight: 600,
+        formatter: '{c}'
+      },
+      barWidth: 18
+    }]
+  });
+
+  // ===== 2. 饼图：分数段分布 =====
+  const pieChart = echarts.init(document.getElementById('pieChart'));
+  const excellent = data.filter(d => d.avg >= 4.5).length;
+  const good = data.filter(d => d.avg >= 4.0 && d.avg < 4.5).length;
+  const mid = data.filter(d => d.avg >= 3.5 && d.avg < 4.0).length;
+  const low = data.filter(d => d.avg < 3.5).length;
+
+  pieChart.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c}人 ({d}%)' },
+    legend: { bottom: 0, textStyle: { color: '#334155' } },
+    series: [{
+      name: '分数段',
+      type: 'pie',
+      radius: ['45%', '70%'],
+      center: ['50%', '45%'],
+      avoidLabelOverlap: true,
+      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+      label: { show: true, formatter: '{b}\n{c}人', fontSize: 12 },
+      data: [
+        { value: excellent, name: '优秀(≥4.5)', itemStyle: { color: '#10b981' } },
+        { value: good, name: '良好(4.0-4.5)', itemStyle: { color: '#3b82f6' } },
+        { value: mid, name: '中等(3.5-4.0)', itemStyle: { color: '#f59e0b' } },
+        { value: low, name: '待改进(<3.5)', itemStyle: { color: '#ef4444' } }
+      ]
+    }]
+  });
+
+  // ===== 3. 雷达图：评审打分对比 =====
+  const radarChart = echarts.init(document.getElementById('radarChart'));
+  radarChart.setOption({
+    tooltip: { trigger: 'item' },
+    legend: { bottom: 0, textStyle: { color: '#334155' } },
+    radar: {
+      indicator: data.map(d => ({ name: d.name, max: 5 })),
+      shape: 'polygon',
+      splitNumber: 5,
+      axisName: { color: '#475569', fontSize: 11 },
+      splitLine: { lineStyle: { color: '#e2e8f0' } },
+      splitArea: { areaStyle: { color: ['rgba(248,250,252,0.4)', 'rgba(241,245,249,0.4)'] } }
+    },
+    series: [{
+      type: 'radar',
+      data: [
+        { name: '仲明哥', value: data.map(d => d.zhong), itemStyle: { color: '#3b82f6' }, areaStyle: { opacity: 0.2 } },
+        { name: '泽鹏哥', value: data.map(d => d.ze),    itemStyle: { color: '#10b981' }, areaStyle: { opacity: 0.2 } },
+        { name: 'Tiger',  value: data.map(d => d.tiger), itemStyle: { color: '#f59e0b' }, areaStyle: { opacity: 0.2 } }
+      ]
+    }]
+  });
+
+  // ===== 4. 散点图：分数分布 =====
+  const scatterChart = echarts.init(document.getElementById('scatterChart'));
+  scatterChart.setOption({
+    tooltip: {
+      trigger: 'item',
+      formatter: (p) => `<b>${p.data[2]}</b><br/>均分: ${p.data[0]}<br/>差异度: ${p.data[1]}`
+    },
+    grid: { left: 60, right: 30, top: 30, bottom: 50 },
+    xAxis: {
+      name: '均分',
+      type: 'value',
+      min: 3,
+      max: 5,
+      nameLocation: 'middle',
+      nameGap: 28,
+      splitLine: { lineStyle: { color: '#e2e8f0' } }
+    },
+    yAxis: {
+      name: '极差(最高-最低)',
+      type: 'value',
+      min: 0,
+      max: 2.5,
+      nameLocation: 'middle',
+      nameGap: 40,
+      splitLine: { lineStyle: { color: '#e2e8f0' } }
+    },
+    series: [{
+      type: 'scatter',
+      symbolSize: 24,
+      data: data.map(d => {
+        const scores = [d.zhong, d.ze, d.tiger];
+        return {
+          value: [d.avg, Math.max(...scores) - Math.min(...scores), d.name],
+          itemStyle: { color: colorFor(d.avg), opacity: 0.85, borderColor: '#fff', borderWidth: 2 }
+        };
+      }),
+      label: {
+        show: true,
+        formatter: (p) => p.data.value[2],
+        position: 'right',
+        color: '#334155',
+        fontSize: 11
+      }
+    }]
+  });
+
+  // 响应窗口大小
+  window.addEventListener('resize', () => {
+    barChart.resize();
+    pieChart.resize();
+    radarChart.resize();
+    scatterChart.resize();
+  });
+</script>
+</body>
+</html>
